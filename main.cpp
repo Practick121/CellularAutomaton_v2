@@ -1,10 +1,12 @@
-﻿#pragma once
-//#pragma comment(lib, "libname.lib")
+#pragma once
 #include <SFML/Graphics.hpp>
 #include <random>
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include "defenition.h"
 #include "functions.h"
 #include "CellAutomaton.h"
@@ -12,10 +14,14 @@
 #include "TypeAutomaton.h"
 #include "Button.h"
 
+std::mutex m1;
 Table field;
-
+sf::Text info_crd;
+sf::Sprite but_background;
+sf::Event ev;
 std::ifstream fin;
 sf::Clock clockrender, clocktps, timeontick;
+std::thread rendering, checking;
 void OpenFile() {
     fin.open("data.txt");
     if (fin.is_open())
@@ -63,49 +69,15 @@ void UploadFile() {
         fout << std::endl;
     }
 }
-
-int main() {
-    std::srand(std::time(NULL));
-    sf::RenderWindow w(sf::VideoMode(Def::windowsize.x, Def::windowsize.y), "My_window");
-
-    field = Table(&w, Def::windowsize.y - 20, Def::windowsize.y - 20);
-
-    int textsize = 15;
-    sf::Color col_but = sf::Color::Red, col_but_text = sf::Color::Black;
-    sf::Vector2f butcolumn[15][3];
-    for (int i = 0; i < 15; i++) {
-        for (int j = 0; j < 3; j++) {
-            butcolumn[i][j] = sf::Vector2f({field.tablerect.width + 10 + 120 * j, 10 + i * (float)60});
-        }
-    }
-    Button brush_col_1(&w, "", sf::Vector2f{ field.tablerect.width + 330, 10 }, sf::Vector2f(30, 30), textsize, sf::Color::Black, sf::Color::Black, []() {field.brush = 1;});
-    Button brush_col_0(&w, "", sf::Vector2f{ field.tablerect.width + 330, 50 }, sf::Vector2f(30, 30), textsize, sf::Color::White, sf::Color::White, []() {field.brush = 0;});
-    Button run(&w, "RUN", butcolumn[0][0], sf::Vector2f{100, 50}, textsize, col_but, col_but_text, []() {Def::RUN = 1;});
-    Button stop(&w, "STOP", butcolumn[1][0], sf::Vector2f{100, 50}, textsize, col_but, col_but_text, []() {Def::RUN = 0;});
-    Button run_one_step(&w, "ONE STEP", butcolumn[2][0], sf::Vector2f{100, 50}, textsize, col_but, col_but_text, []() {Def::RUN = 2;});
-    Button generate(&w, "GENERATE", butcolumn[3][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setrandom();});
-    Button generatecustom(&w, "GENERATE\nSQUARE", butcolumn[4][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setcustom();});
-    Button clean(&w, "CLEAN", butcolumn[5][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.clean();});
-    
-    Button maze(&w, "MAZE", butcolumn[0][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({3}, {1, 2, 3, 4, 5});});
-    Button caves(&w, "CAVES", butcolumn[1][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({5, 6, 7, 8}, {4, 5, 6, 7, 8});});
-    Button live(&w, "LIVE", butcolumn[2][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({3}, {2, 3});});
-    Button daynight(&w, "DAYNIGHT", butcolumn[3][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({3, 6, 7, 8}, {3, 4, 6, 7, 8});});
-    Button diamoba(&w, "DIAMOEBA", butcolumn[4][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({ 3, 5, 6, 7, 8 }, {5, 6, 7, 8 });});
-    Button carpet(&w, "CARPET", butcolumn[5][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.mode = TypeAutomaton({ 2, 3, 4 }, { });});
-
-
-    Button upload(&w, "UPLOAD", butcolumn[14][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, UploadFile);
-    Button open(&w, "OPEN", butcolumn[14][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, OpenFile);
-    Button close(&w, "CLOSE", butcolumn[14][2], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() { field.exit();});
-
-    Button tps5(&w, "5", sf::Vector2f{ field.tablerect.width + 250, 10 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 5;});
-    Button tps15(&w, "15", sf::Vector2f{ field.tablerect.width + 250, 60 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 15;});
-    Button tps30(&w, "30", sf::Vector2f{ field.tablerect.width + 250, 110 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 30;});
-    Button tps60(&w, "60", sf::Vector2f{ field.tablerect.width + 250, 160 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 60;});
-    
-
-    sf::Text info_crd;
+static void Close(sf::RenderWindow *w1) {
+    std::cout << "Close!" << std::endl;
+    Def::running1 = 0;
+    checking.join();
+    Def::running2 = 0;
+    rendering.join();
+    exit(0);
+}
+void work_with_graphics(sf::RenderWindow* w1, std::mutex* m1) {
     sf::Font font;
     font.loadFromFile("ariali.ttf");
     info_crd.setFont(font);
@@ -113,53 +85,122 @@ int main() {
     info_crd.setCharacterSize(30);
     info_crd.setStyle(sf::Text::Bold);
     info_crd.setPosition({ field.tablerect.height + 250, field.tablerect.height - 300 });
-
-    sf::RectangleShape but_background;
-    but_background.setSize({ Def::windowsize.x - field.tablerect.width, Def::windowsize.y});
+    sf::Texture but_background_txtr;
+    Def::background.loadFromFile("background2.png");
+    but_background_txtr.loadFromImage(Def::background);
+    but_background.setTexture(but_background_txtr);
     but_background.setPosition({ field.tablerect.width, 0 });
-    but_background.setFillColor(sf::Color::Blue);
+    but_background.setScale(0.75, 0.75);
+    w1->setActive(true);
+    while (Def::running2) {
+        //std::this_thread::sleep_for(std::chrono::milliseconds(std::max(0, 1000 / Def::FPS - clockrender.getElapsedTime().asMilliseconds())));
+        m1->lock();
+        if (clockrender.getElapsedTime().asMilliseconds() >= 1000 / Def::FPS) {
+            std::string title = "FPS: " + std::to_string((int)(1 / clockrender.restart().asSeconds()));
+            //w1->setTitle(title);
+            w1->clear(sf::Color::Blue);
+            field.render();
+            w1->draw(but_background);
+            w1->draw(info_crd);
+            for (Button* but : Button::List)
+                but->render();
+            w1->display();
+        }
+        m1->unlock();
+    }
+}
+void checking_func(sf::RenderWindow* w1) {
+    w1->setActive(false);
+    while (Def::running1) {
+        field.check();
+        for (auto but : Button::List)
+            (*but).check();
+    }
+}
+//void but_init(sf::RenderWindow* w1) {
+//    
+//}
+int main() {
+    std::srand(std::time(NULL));
+    sf::RenderWindow w(sf::VideoMode(Def::windowsize.x, Def::windowsize.y), "CellularAutomaton_v2.1");
+    
+    
+    field = Table(&w, Def::windowsize.y, Def::windowsize.y);
+    
+    Def::buttons.loadFromFile("buttons.png");
+    int textsize = 15;
+    sf::Color col_but = Def::brightRed, col_but_text = sf::Color::Black;
+    sf::Vector2f butcolumn[15][3];
+    for (int i = 0; i < 15; i++) {
+        for (int j = 0; j < 3; j++) {
+            butcolumn[i][j] = sf::Vector2f({ field.tablerect.width + 10 + 120 * j, 10 + i * (float)60 });
+        }
+    }
+    sf::RenderWindow* w1 = &w;
+    Button brush_col_1(w1, "", sf::Vector2f{ field.tablerect.width + 330, 10 }, sf::Vector2f(30, 30), textsize, sf::Color::Black, sf::Color::Black, []() {field.brush = 1;}, false);
+    Button brush_col_0(w1, "", sf::Vector2f{ field.tablerect.width + 330, 50 }, sf::Vector2f(30, 30), textsize, sf::Color::White, sf::Color::White, []() {field.brush = 0;}, false);
 
-    while (w.isOpen()) {
-        sf::Event ev;
+    Button run(w1, "RUN", butcolumn[0][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 1;});
+    Button stop(w1, "STOP", butcolumn[1][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 0;});
+    Button run_one_step(w1, "ONE STEP", butcolumn[2][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 2;});
+    Button generate(w1, "GENERATE", butcolumn[3][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setrandom();});
+    Button generatecustom(w1, "GENERATE\nSQUARE", butcolumn[4][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setcustom();});
+    Button clean(w1, "CLEAN", butcolumn[5][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.clean();});
+
+    Button maze(w1, "MAZE", butcolumn[0][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::mazeA;});
+    Button caves(w1, "CAVES", butcolumn[1][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::cavesA;});
+    Button live(w1, "LIVE", butcolumn[2][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::liveA;});
+    Button daynight(w1, "DAYNIGHT", butcolumn[3][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::daynightA;});
+    Button diamoba(w1, "DIAMOEBA", butcolumn[4][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::diamobaA;});
+    Button carpet(w1, "CARPET", butcolumn[5][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::carpetA;});
+
+
+    Button upload(w1, "UPLOAD", butcolumn[14][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, UploadFile);
+    Button open(w1, "OPEN", butcolumn[14][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, OpenFile);
+    Button close(w1, "CLOSE", butcolumn[14][2], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::CLOSE = 1;});
+
+    Button tps5(w1, "5", sf::Vector2f{ field.tablerect.width + 250, 10 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 5;});
+    Button tps15(w1, "15", sf::Vector2f{ field.tablerect.width + 250, 60 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 15;});
+    Button tps30(w1, "30", sf::Vector2f{ field.tablerect.width + 250, 110 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 30;});
+    Button tps60(w1, "60", sf::Vector2f{ field.tablerect.width + 250, 160 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 60;});
+    Button tps120(w1, "120", sf::Vector2f{ field.tablerect.width + 250, 210 }, sf::Vector2f(50, 30), textsize, sf::Color::Green, col_but_text, []() {Def::TPS = 120;});
+
+
+
+    w.setActive(false);
+    rendering = std::thread([](sf::RenderWindow* w1, std::mutex* m1) {
+        work_with_graphics(w1, m1);
+    }, &w, &m1);
+    checking = std::thread([](sf::RenderWindow* w1) {
+        checking_func(w1);
+    }, &w);
+    while (Def::running2) {
+        if (Def::CLOSE)
+            Close(&w);
         while (w.pollEvent(ev)) {
-            if (ev.type == sf::Event::Closed) {
-                w.close();
-            }
-            else if (ev.type == sf::Event::MouseWheelMoved) {
+            if (ev.type == sf::Event::Closed)
+                Close(&w);
+            if (ev.type == sf::Event::MouseWheelMoved) {
                 sf::Vector2f mouse_pos = get_mouse_pos(&w);
-                field.mouselastpos += (mouse_pos - field.mouselastpos) / field.zoom;
-                field.zoom += (float)ev.mouseWheel.delta;
-                field.zoom = std::max(1.f, field.zoom);
-                //std::cout << field.zoom << "   " << field.mouse_last_pos.x << ' ' << field.mouse_last_pos.y << std::endl;
+                field.mouselastpos += (mouse_pos - field.mouselastpos) / (float)field.zoom;
+                field.zoom += (int)ev.mouseWheel.delta;
+                field.zoom = std::max(1, field.zoom);
             }
         }
         sf::Vector2f mouse_pos1 = get_mouse_pos(&w);
         std::string str = "X: " + std::to_string((int)mouse_pos1.x) + "\nY: " + std::to_string((int)mouse_pos1.y);
         info_crd.setString(str);
 
-        field.check();
-        for (auto but : Button::List)
-            (*but).check();
+        
+
         if (clocktps.getElapsedTime().asMilliseconds() >= 1000 / Def::TPS) {
             clocktps.restart();
-            std::string tittle = "TPS: " + std::to_string((int)(1 / timeontick.restart().asSeconds()));
-            w.setTitle(tittle);
             if (Def::RUN == 2) {
                 field.nextgeneration();
                 Def::RUN = 0;
             } else if (Def::RUN == 1) {
                 field.nextgeneration();
             }
-        }
-        if (clockrender.getElapsedTime().asMilliseconds() >= 1000 / Def::FPS) {
-            clockrender.restart();
-            w.clear(sf::Color::Blue);
-            field.render();
-            w.draw(but_background);
-            w.draw(info_crd);
-            for (Button* but : Button::List)
-                (*but).render();
-            w.display();
         }
     }
     return 0;
