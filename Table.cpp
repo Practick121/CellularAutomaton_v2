@@ -2,36 +2,32 @@
 Table::Table() {}
 Table::Table(sf::RenderWindow* window, int width1, int height1) {
     w1 = window;
-    //tablew = width;
-    //tableh = height;
     tablerect = sf::Rect <float>();
     tablerect.width = width1;
     tablerect.height = height1;
     tablerect.top = 0;
     tablerect.left = 0;
-    //cellw = tablew / (CellAutomaton::getsizet());
-    //cellh = tableh / (CellAutomaton::getsizet());
     cellrect.width = tablerect.width / (CellAutomaton::getsizet());
     cellrect.height = tablerect.width / (CellAutomaton::getsizet());
+    //tableimage.create(tablerect.width, tablerect.height, sf::Color::White);
     cellshape.setSize(cellrect.getSize());
     deathshape.setSize(cellrect.getSize());
     tableshape.setSize(tablerect.getSize());
     cellshape.setFillColor(sf::Color::Black);
-    deathshape.setFillColor(sf::Color::Black);
+    deathshape.setFillColor(sf::Color::Red);
     automaton.setrandom();
-    mode = TypeAutomaton({ 3 }, { 2, 3 });
 }
 
-void Table::nextgeneration() { automaton.nextgeneration(mode); }
+void Table::nextgeneration() { automaton.nextgeneration(Def::mode); }
 void Table::setrandom() { automaton.setrandom(); }
 void Table::clean() { automaton.clean(); }
-void Table::exit() { (*w1).close(); }
+//void Table::exit() { (*w1).close(); }
 bool Table::ispressed() { return sf::Mouse::isButtonPressed(sf::Mouse::Left) && tablerect.contains(get_mouse_pos(w1)); }
 std::vector<std::vector<int>> Table::getmatrix() { return automaton.M; }
 
 void Table::check() {
     if (ispressed()) {
-        sf::Vector2f mouse_pos = mouselastpos + (get_mouse_pos(w1) - mouselastpos) / zoom;
+        sf::Vector2f mouse_pos = mouselastpos + (get_mouse_pos(w1) - mouselastpos) / (float)zoom;
         sf::Vector2i cell_pos;
         cell_pos.x = (mouse_pos.x - tablerect.left) / cellrect.width;
         cell_pos.y = (mouse_pos.y - tablerect.top) / cellrect.height;
@@ -55,40 +51,32 @@ void Table::render() {
     sf::Rect<float> cellrect1 = cellrect;
     cellshape1.setScale(zoom, zoom);
     deathshape1.setScale(zoom, zoom);
+    cellrect1.width *= zoom;
+    cellrect1.height *= zoom;
+    sf::Vector2f crd = { 0, 0 };
+    crd = mouselastpos - (mouselastpos - crd) * (float)zoom;
+    float dx = cellrect1.width, dy = cellrect1.height;
     for (int i = 1; i <= automaton.getsizet(); i++) {
-        x = 0;
+
+        crd.x = mouselastpos.x - (mouselastpos.x) * (float)zoom;
         for (int j = 1; j <= automaton.getsizet(); j++) {
-            sf::Vector2f crd = { x, y };
-            crd = mouselastpos - (mouselastpos - crd) * zoom;
+            
+            //crd = mouselastpos - (mouselastpos - crd) * (float)zoom;
             cellrect1.left = crd.x;
             cellrect1.top = crd.y;
-            cellrect1.width *= zoom;
-            cellrect1.height *= zoom;
-            if (automaton.M[i][j] == 1 && cellrect1.intersects(tablerect)) {
+            if (automaton.M[i][j] == 1 && tablerect.intersects(cellrect1)) {
                 cellshape1.setPosition(crd);
-                (*w1).draw(cellshape1);
+                w1->draw(cellshape1);
             }
             /*else if (tablerect.contains(crd)) {
-                deathshape1.setPosition(new_crd);
+                deathshape1.setPosition(crd);
                 (*w1).draw(deathshape1);
             }*/
-            x += cellrect.width;
+            crd.x += dx;
         }
-        y += cellrect.height;
+        crd.y += dy;
     }
 }
-//bool Table::myintersects(sf::Rect<float> a, sf::Rect<float> b) {
-//    //if (a.top + a.height > b.top + b.height)
-//    //    std::swap(a, b);
-//    float bottoma = a.top + a.height, bottomb = b.top + b.height;
-//    float righta = a.left + a.width, rightb = b.left + b.width;
-//    if (bottoma < b.top || bottomb < a.top || righta < b.left || rightb < a.left)
-//        return false;
-//    return true;
-//    /*if (bottoma >= b.top && (b.left <= righta && righta <= rightb || b.left <= a.left && a.left <= rightb))
-//        return true;
-//    return false;*/
-//}
 void Table::setcustom() {
     for (int i = 1; i <= automaton.getsizet(); i++) {
         for (int j = 1; j <= automaton.getsizet(); j++) {
