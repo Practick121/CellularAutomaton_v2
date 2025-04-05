@@ -1,5 +1,5 @@
 #include "CellAutomaton.h"
-
+int CellAutomaton::SIZET = Def::SIZET;
 int CellAutomaton::getrandom(int a, int b) { return rand() % (b - a + 1) + a; }
 int CellAutomaton::getsizet() { return SIZET; }
 CellAutomaton::CellAutomaton() { M.assign(SIZET + 2, std::vector<int>(SIZET + 2, 0)); }
