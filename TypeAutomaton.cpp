@@ -7,3 +7,6 @@ TypeAutomaton::TypeAutomaton(std::unordered_set<int> b, std::unordered_set<int> 
     birth = b;
     survive = s;
 }
+bool operator==(TypeAutomaton a, TypeAutomaton b) {
+    return (a.getsurvive() == b.getsurvive() && a.getbirth() == b.getbirth());
+}
