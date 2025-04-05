@@ -2,11 +2,12 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <atomic>
 #include "TypeAutomaton.h"
 #include "defenition.h"
 class CellAutomaton {
 public:
-	static const int SIZET = 200;
+	static int SIZET;
 	std::vector <std::vector<int>> M;
 	CellAutomaton();
 	static int getsizet();
