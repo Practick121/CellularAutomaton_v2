@@ -10,3 +10,4 @@ public:
 private:
     std::unordered_set<int> survive, birth;
 };
+bool operator==(TypeAutomaton a, TypeAutomaton b);
