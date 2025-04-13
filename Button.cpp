@@ -1,34 +1,35 @@
 #include "Button.h"
 std::vector<Button*> Button::List;
-Button::Button(sf::RenderWindow* window, std::string title1, sf::Vector2f coord1, sf::Vector2f size1, int sizetext, sf::Color colbut1, sf::Color coltext1, void (*func1)(), bool texture_on1) {
+std::vector <std::string> Button::active;
+std::map <std::string, TypeAutomaton> Button::mapactive;
+void Button::init(sf::RenderWindow* window, std::string title1, sf::Font* font1, sf::Vector2f coord1, sf::Vector2f size1, int sizetext1, sf::Color colbut1,\
+    sf::Color coltext1, void (*func1)(), bool texture_on1) {
     List.push_back(this);
-    w1 = window;
-    texture_on = texture_on1;
-    pressed = false;
-    coord = coord1;
-    size = size1;
-    colbut = colbut1;
-    coltext = coltext1;
-    title = title1;
-    func = func1;
-    rect = sf::Rect<float>(coord, size);
-    for (int i = 0; i < 4; i++) {
-        rectshape[i].setSize(size1);
+    w1 = window; // куда отрисовывается объект
+    title = title1; // название кнопки (для пользователя)
+    coord = coord1; // координаты кнопки
+    texture_on = texture_on1; // включена/выключена текстура у кнопки
+    pressed = 0; // нажата/отжата кнопка
+    size = size1; // размер кнопки
+    colbut = colbut1; // цвет кнопки
+    coltext = coltext1; // цвет текста
+    func = func1; // функция, которую выполняет кнопка (без аргументов)
+    rect = sf::Rect<float>(coord, size); // прямоугольник кнопки, для проверки касания мыши
+	sizetext = sizetext1; // размер текста
+	font = font1; // ссылка на шрифт текста
+    for (int i = 0; i < 4; i++) { // каждому из 4х спрайтов задаётся текстура и координата
+        rectshape[i].setSize(size1); 
         rectshape[i].setPosition(coord);
-    }
+    } // 0 - обычный цвет, 1 - цвет при наведении, 2 - цвет при нажатии
     rectshape[0].setFillColor(colbut);
     rectshape[1].setFillColor(Def::Grey);
     rectshape[2].setFillColor(Def::darkGrey);
     if (std::find(active.begin(), active.end(), title) != active.end())
         rectshape[3].setFillColor(sf::Color(176, 0, 0));
-    font.loadFromFile("ariali.ttf");
-    text.setFont(font);
-    text.setString(title);
-    text.setFillColor(coltext);
-    text.setCharacterSize(sizetext);
-    text.setStyle(sf::Text::Bold);
-    float text_width = text.getLocalBounds().width, text_height = text.getLocalBounds().height;
-    text.setPosition(coord + sf::Vector2f{ (size.x - text_width) / 2, (size.y - text_height) / 2 });
+
+    text.init(w1, title, font1, sizetext, coltext, {});
+    text.setonbutton(rect);
+
     std::vector<std::string> temp = { "5", "15", "30", "60", "120" };
     if (std::find(temp.begin(), temp.end(), title) != temp.end()) {
         texture.loadFromImage(Def::buttons, sf::IntRect(643, 284, 88, 75));
@@ -43,30 +44,15 @@ Button::Button(sf::RenderWindow* window, std::string title1, sf::Vector2f coord1
         sprites[i].setPosition(coord);
         sprites[i].setScale(rect.width / sprites[i].getLocalBounds().width, rect.height / sprites[i].getLocalBounds().height);
     }
-    sprites[0].setColor(colbut);
-    sprites[1].setColor(sf::Color(255, 255, 255));
+    sprites[1].setColor(Def::Grey);
     sprites[2].setColor(Def::darkGrey);
     sprites[3].setColor(sf::Color(176, 0, 0));
 }
 void Button::render() {
-    /*if ((title == "RUN" && Def::RUN == 1) || (title == "STOP" && Def::RUN == 0) || std::find(active.begin(), active.end(), title) != active.end() && mapactive[title] == Def::mode) {
-        (*w1).draw(rectshape[3]);
-    }
-    else if (ispressed() && title != "") {
-        (*w1).draw(rectshape[2]);
-    }
-    else if (rect.contains(get_mouse_pos(w1)) && title != "") {
-        (*w1).draw(rectshape[1]);
-    }
-    else {
-        (*w1).draw(rectshape[0]);
-    }
-    (*w1).draw(text);*/
-
-    if ((title == "RUN" && Def::RUN == 1) || (title == "STOP" && Def::RUN == 0) || std::find(active.begin(), active.end(), title) != active.end() && mapactive[title] == Def::mode) {
+    if ((title == "RUN" && Def::RUN == 1) || (title == "STOP" && Def::RUN == 0) || (std::find(active.begin(), active.end(), title) != active.end() && mapactive[title] == Def::mode)) {
         draw(3);
     }
-    else if (ispressed() && title != "") {
+    else if (pressed == 2 && title != "") {
         draw(2);
     }
     else if (rect.contains(get_mouse_pos(w1)) && title != "") {
@@ -75,7 +61,7 @@ void Button::render() {
     else {
         draw(0);
     }
-    w1->draw(text);
+    text.render();
 }
 void Button::draw(int num) {
     if (texture_on)
@@ -84,31 +70,25 @@ void Button::draw(int num) {
         w1->draw(rectshape[num]);
 }
 void Button::check() {
-    if (ispressed()) {
-        if (!pressed) {
-            std::cout << "Button is pressed\n";
-            callfunc();
-        }
-        pressed = true;
+    if (title == "NEIGHBOURS:") {
+        text.setString(title + std::to_string(Def::typecheckingneighbours));
     }
-    else {
-        pressed = false;
-    }
+    int condition = ispressed();
+    if (condition == 2 && pressed == 1)
+        callfunc();
+    
+    pressed = condition;
 }
 void Button::callfunc() {
-    std::cout << "base\n";
     func();
 }
-bool Button::ispressed() {
+int Button::ispressed() {
     sf::Vector2 <float> mouse_pos = get_mouse_pos(w1);
-    return (sf::Mouse::isButtonPressed(sf::Mouse::Left) && rect.contains(mouse_pos));
+
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && rect.contains(mouse_pos))
+        return 2;
+    if (rect.contains(mouse_pos))
+        return 1;
+    return 0;
 }
 
-Button1::Button1(sf::RenderWindow* w1, std::string str1, sf::Vector2f coord1, sf::Vector2f size1, int sizetext, sf::Color col1, sf::Color col_text1, void (*func1)(sf::RenderWindow* window)): \
-        Button(w1, str1, coord1, size1, sizetext, col1, col_text1, []() {}) {
-    func = func1;
-}
-void Button1::callfunc() {
-    std::cout << "son\n";
-    func(w1);
-}
