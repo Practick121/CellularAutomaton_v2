@@ -5,3 +5,4 @@
 #include "defenition.h"
 
 sf::Vector2f get_mouse_pos(sf::RenderWindow* w);
+int getrandom(int a, int b);
