@@ -9,7 +9,6 @@
 
 class Table {
 public:
-	//std::atomic<int> *zzz;
 	int zoom = 1;
 	bool pressed = false;
 	int brush = 1;
@@ -22,8 +21,13 @@ public:
 	Table(sf::RenderWindow* w1, int width, int height);
 	void setmatrix(std::vector<std::vector<int>>* M), render(), nextgeneration(), setrandom(),\
 		clean(), check(), setcustom();
-	bool ispressed(), myintersects(sf::Rect <float> a, sf::Rect<float> b );
+	bool ispressed();
+	void updateVertexArray();
+	void setColor(int i, int j, sf::Color col);
+	int getrandom(int a, int b);
 	std::vector<std::vector<int>> getmatrix();
+	std::vector<sf::Vertex> vertexarray;
 private:
+	void addQuad(int i, int j);
 	CellAutomaton automaton;
 };
