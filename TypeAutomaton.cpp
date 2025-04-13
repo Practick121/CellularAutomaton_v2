@@ -1,4 +1,6 @@
+//v2.2
 #include "TypeAutomaton.h"
+
 
 std::unordered_set<int> TypeAutomaton::getsurvive() { return survive; }
 std::unordered_set<int> TypeAutomaton::getbirth() { return birth; }
