@@ -8,8 +8,11 @@
 class Def {
 public:
 	static sf::Vector2f windowsize;
-	static int TPS, FPS, RUN, SIZET, running1, running2, CLOSE;
+	static int TPS, FPS, RUN, SIZET, running, CLOSE, chance;
 	static sf::Color Grey, darkGrey, brightRed;
 	static sf::Image buttons, background;
-	static TypeAutomaton mode, liveA, cavesA, mazeA, daynightA, diamobaA, carpetA;
+	static int typecheckingneighbours;
+	static bool focused;
+	static TypeAutomaton mode, liveA, cavesA, mazeA, daynightA, diamobaA, carpetA, tempA;
+
 };
