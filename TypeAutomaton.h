@@ -1,14 +1,11 @@
-//v2.2
 #pragma once
 #include <iostream>
 #include <vector>
-#include "unordered_set"
 class TypeAutomaton {
 public:
-    std::unordered_set<int> getsurvive(), getbirth();
+    std::vector<int> getsurvive(), getbirth();
     TypeAutomaton();
-    TypeAutomaton(std::unordered_set<int> b, std::unordered_set<int> s);
+    TypeAutomaton(const std::vector<int> b, const std::vector<int> s);
 private:
-    std::unordered_set<int> survive, birth;
+    std::vector<int> survive, birth;
 };
-bool operator==(TypeAutomaton a, TypeAutomaton b);
