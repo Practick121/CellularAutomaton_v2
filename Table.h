@@ -1,33 +1,57 @@
 #pragma once
+#include "Camera.h"
+#include "TypeAutomaton.h"
+#include "Global.h"
+#include "functions.h"
+#include "Config.h"
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#include <atomic>
-#include "CellAutomaton.h"
-#include "TypeAutomaton.h"
-#include "defenition.h"
-#include "functions.h"
 
 class Table {
 public:
-	int zoom = 1;
+	Table() = default;
+	Table(sf::RenderWindow* iw, Camera* camera1, sf::Rect<float> rect1);
+	sf::Rect<float> rect;
+	int brush = Gl::CNT_GENER;
+	void setcustom();
+	void setrandom();
+	void printmatrix();
+	void render();
+	void clean();
+	void check();
+	void nextgeneration();
+	void setmatrix(std::vector<std::vector<int>>* M);
+	std::vector<std::vector<int>> getmatrix();
+private:
+	
+	sf::Rect<float> cellrect;
 	bool pressed = false;
-	int brush = 1;
-	TypeAutomaton mode;
-	sf::Vector2f mouselastpos;
-	sf::Rect<float> tablerect, cellrect;
-	sf::RectangleShape cellshape, tableshape, deathshape;
-	sf::RenderWindow* w1;
-	Table();
-	Table(sf::RenderWindow* w1, int width, int height);
-	void setmatrix(std::vector<std::vector<int>>* M), render(), nextgeneration(), setrandom(),\
-		clean(), check(), setcustom();
+	sf::RenderWindow* iw = nullptr;
+	Camera* camera = nullptr;
+
+	std::vector<sf::Vertex> vertexarray;
+	std::vector <std::vector<int>> M;
+	std::vector<std::pair<sf::Vector2f, int>> update;
+	std::vector<sf::Color> Color_for_Gener;
+
 	bool ispressed();
 	void updateVertexArray();
+
 	void setColor(int i, int j, sf::Color col);
-	int getrandom(int a, int b);
-	std::vector<std::vector<int>> getmatrix();
-	std::vector<sf::Vertex> vertexarray;
-private:
 	void addQuad(int i, int j);
-	CellAutomaton automaton;
+	int getcntnbrs(int i, int j);
+	bool isalive(int i, int j);
+
+	template <typename Func>
+	void cellForEach(Func func1);
 };
+
+template<typename Func>
+void Table::cellForEach(Func func1)
+{
+	for (int i = 0; i < Config::SIZET; i++) {
+		for (int j = 0; j < Config::SIZET; j++) {
+			func1(i, j);
+		}
+	}
+}
