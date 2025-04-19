@@ -1,69 +1,84 @@
 #pragma once
-#include <SFML/Graphics.hpp>
-#include <random>
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <thread>
-#include <mutex>
-#include <atomic>
-#include "defenition.h"
-#include "functions.h"
-#include "CellAutomaton.h"
-#include "Table.h"
-#include "TypeAutomaton.h"
+#include "Config.h"
 #include "Button.h"
-#include "Text.h"
+#include "Global.h"
+#include "functions.h"
 #include "Slider.h"
+#include "Table.h"
+#include "Text.h"
+#include "TypeAutomaton.h"
+#include "InputBox.h"
+#include "Camera.h"
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <SFML/Graphics.hpp>
+#include <string>
+#include <thread>
 
-std::mutex m1;
 Table field;
-Text info_crd, info_typeA;
+Text info_typeA;
 sf::Sprite but_background;
 std::ifstream fin;    
-sf::View view;
-
-sf::Clock clockrender, clocktps;
-void handleevents(sf::RenderWindow* w1, sf::Event* event) {
-    while (w1->pollEvent(*event)) {
-        if (event->type == sf::Event::Closed) {
-            Def::CLOSE = 1;
-        }
-   //     if (event->type == sf::Event::MouseWheelMoved) {
-			//view.setCenter(get_mouse_pos(w1));
-			//view.zoom(1 - event->mouseWheel.delta * 0.1f);
-            /*sf::Vector2f mouse_pos = get_mouse_pos(w1);
-            field.mouselastpos += (mouse_pos - field.mouselastpos) / (float)field.zoom;
-            field.zoom += (int)event->mouseWheel.delta;
-            field.zoom = std::max(1, field.zoom);*/
-        //}
-		/*if (event->type == sf::Event::KeyPressed) {
-			if ( == sf::Keyboard::R) {
-				view.zoom(1.0f);
-			}
-		}*/
-        if (event->type == sf::Event::GainedFocus) {
-            std::cout << "Focused!\n";
-            Def::focused = true;
-        } 
-        if (event->type == sf::Event::LostFocus) {
-            std::cout << "Disfocused\n";
-            Def::focused = false;
-        }
-	}
-    //if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
-    //    view.setCenter(Def::windowsize.x / 2, Def::windowsize.y / 2);
-    //    view.setSize(Def::windowsize.x, Def::windowsize.y);
-    //}
+Camera camera_table, camera_i, default_camera;
+sf::Clock clockrender, clocktps, systemclock1, systemclock2;
+InputBox textbox1, textbox2;
+void handleevents(sf::RenderWindow* iw, sf::Event* event) {
+    while (iw->pollEvent(*event)) {
+        for (auto box : InputBox::List)
+            box->check(event);
+        if (event->type == sf::Event::Closed)
+            Gl::CLOSE = 1;
+        if (event->type == sf::Event::MouseWheelMoved)
+            camera_table.addZoom(1 - event->mouseWheel.delta * 0.1f);
+        if (event->type == sf::Event::GainedFocus)
+            Gl::focused = true;
+        if (event->type == sf::Event::LostFocus)
+            Gl::focused = false;
+        if (event->type == sf::Event::TextEntered)
+            Gl::input += static_cast<char>(event->text.unicode);
+        if (event->type == sf::Event::KeyPressed)
+            switch (event->key.code) {
+            case sf::Keyboard::Left:
+                camera_table.move({ -5, 0 });
+                break;
+            case sf::Keyboard::Right:
+                camera_table.move({ 5, 0 });
+                break;
+            case sf::Keyboard::Up:
+                camera_table.move({ 0, -5 });
+                break;
+            case sf::Keyboard::Down:
+                camera_table.move({ 0, 5 });
+                break;
+            case sf::Keyboard::M:
+                camera_table.addZoom(0.9);
+                break;
+            case sf::Keyboard::N:
+                camera_table.addZoom(1.1);
+                break;
+            case sf::Keyboard::R:
+                camera_table.reset();
+                break;
+            }
+        if (event->type == sf::Event::MouseButtonPressed)
+            switch (event->mouseButton.button) {
+            case sf::Mouse::Middle:
+                camera_table.setActive(true);
+                break;
+            case sf::Mouse::Right:
+                Gl::RUN = 1 - Gl::RUN;
+                break;
+            }
+        if (event->type == sf::Event::MouseButtonReleased && event->mouseButton.button == sf::Mouse::Middle)
+            camera_table.setActive(false);
+    }
 }
-std::thread rendering;
 
 void OpenFile() {
     fin.open("data.txt");
-    if (fin.is_open())
-        std::cout << "Success!\n";
-    else {
-        std::cout << "ERROR!\n";
+    if (!fin.is_open()) {
+        std::cerr << "ERROR!\n";
         return;
     }
     std::string line;
@@ -73,10 +88,7 @@ void OpenFile() {
         a++;
         M1.push_back({});
         for (char el : line) {
-            if (el == '0')
-                M1[a].push_back(0);
-            else
-                M1[a].push_back(1);
+            M1[a].push_back(el - '0');
         }
     }
     fin.close();
@@ -84,16 +96,12 @@ void OpenFile() {
 }
 void UploadFile() {
     std::string namefile = "out";
-    int i = 1;
-    for (; i <= 10; i++) {
+    int i = 0;
+    while(++i) {
         fin.open(namefile + std::to_string(i) + ".txt");
         if (!fin.is_open())
             break;
         fin.close();
-    }
-    if (i == 11) {
-        std::cout << "too many output files\n";
-        return;
     }
     namefile = namefile + std::to_string(i) + ".txt";
     std::ofstream fout(namefile);
@@ -105,158 +113,170 @@ void UploadFile() {
         fout << std::endl;
     }
 }
-void recalccoord(sf::RenderWindow* w1) {
-    sf::Vector2f mouse_pos1 = get_mouse_pos(w1);
-    std::string str = "X: " + std::to_string((int)mouse_pos1.x) + "\nY: " + std::to_string((int)mouse_pos1.y);
-    info_crd.setString(str);
-}
+
 void recalctypeA() {
     std::string str = "Birth: ";
-	for (auto el : Def::mode.getbirth()) {
+	for (auto el : Gl::mode.getbirth()) {
 		str += std::to_string(el) + " ";
 	}
     str += "\nSurvive: ";
-    for (auto el : Def::mode.getsurvive()) {
+    for (auto el : Gl::mode.getsurvive()) {
         str += std::to_string(el) + " ";
 	}
 	info_typeA.setString(str);
 }
-static void Close(sf::RenderWindow *w1) {
-    std::cout << "Close!" << std::endl;
-    Def::running = 0;
-    if (rendering.joinable()) {
-        rendering.join();
-		std::cout << "Thread closed!" << std::endl;
-    }
-}
-void generate_automaton() {
-    std::unordered_set<int> birth, survive;
-	int max_cnt = Def::typecheckingneighbours;
-    for (int i = 1; i <= max_cnt; i++) {
-		if (getrandom(0, 1))
-			birth.insert(i);
-    }
-    for (int i = 1; i <= max_cnt; i++) {
-		if (getrandom(0, 1))
-			survive.insert(i);
-    }
-	std::cout << "New automaton generated!\n";
-	Def::tempA = TypeAutomaton(birth, survive);
-	Button::mapactive["SET\nRANDOM"] = Def::tempA;
-}
-void work_with_graphics(sf::RenderWindow* w1, std::mutex* m1) {
-    view.setCenter(Def::windowsize.x / 2, Def::windowsize.y / 2);
-    view.setSize(Def::windowsize.x, Def::windowsize.y);
-    
-    sf::Texture but_background_txtr;
-    Def::background.loadFromFile("background3.png");
-    but_background_txtr.loadFromImage(Def::background);
-    but_background.setTexture(but_background_txtr);
-    but_background.setPosition({ field.tablerect.width, 0 });
-    but_background.setScale(0.75, 0.75);
-    w1->setActive(true);
-    while (Def::running) {
 
-        recalccoord(w1);
-        recalctypeA();
-        if (clockrender.getElapsedTime().asMilliseconds() >= 1000 / Def::FPS) {
+void work_with_graphics(sf::RenderWindow* iw) {
+    iw->setActive(true);
+
+    while (Gl::running) {
+        if (systemclock2.getElapsedTime().asMilliseconds() >= 10) {
+            systemclock2.restart();
+            recalctypeA();
+        }
+        if (clockrender.getElapsedTime().asMilliseconds() >= 1000 / Config::FPS) {
             std::string title = "FPS: " + std::to_string((int)(1 / clockrender.restart().asSeconds()));
-			w1->setView(view);
-            //w1->setTitle(title);
-            w1->clear(sf::Color::Blue);
+            //iw->setTitle(title);
+            iw->clear(Gl::darkGrey);
+            camera_table.setCamera();
             field.render();
-            w1->draw(but_background);
-            info_crd.render();
+            camera_i.setCamera();
+            iw->draw(but_background);
             info_typeA.render();
+            for (InputBox* box : InputBox::List)
+                box->render();
             for (Button* but : Button::List)
                 but->render();
             for (Slider* but : Slider::List)
                 but->render();
-            w1->display();
+            iw->display();
         }
     }
-	std::cout << "myThread closed!" << std::endl;
-	w1->setActive(false);
+	iw->setActive(false);
+}
+
+void Apply() {
+    std::vector<int> B, S;
+    B = string_to_mas(textbox1.content);
+    S = string_to_mas(textbox2.content);
+    for (auto el : B)
+        std::cout << el << ' ';
+    std::cout << std::endl;
+    std::sort(B.begin(), B.end());
+    std::sort(S.begin(), S.end());
+    Gl::mode = TypeAutomaton(B, S);
+}
+
+void switchNbrtype() {
+    if (Config::typecheckingneighbours == "4")
+        Config::typecheckingneighbours = "8";
+    else if (Config::typecheckingneighbours == "8")
+        Config::typecheckingneighbours = "12";
+    else if (Config::typecheckingneighbours == "12")
+        Config::typecheckingneighbours = "24";
+    else if (Config::typecheckingneighbours == "24")
+        Config::typecheckingneighbours = "4";
 }
 
 int main() {
-    std::srand(std::time(NULL));
-    sf::RenderWindow w(sf::VideoMode(Def::windowsize.x, Def::windowsize.y), "CellularAutomaton_v2.2");
-
+    //ЗАГРУЗКА РЕСУРСОВ
     sf::Font myfont;
     myfont.loadFromFile("arial.ttf");
-    field = Table(&w, Def::windowsize.y, Def::windowsize.y);
-    
-    Button::mapactive = { {"LIVE", Def::liveA}, {"CARPET", Def::carpetA}, {"DIAMOEBA", Def::diamobaA},\
-    {"DAYNIGHT", Def::daynightA}, { "MAZE", Def::mazeA }, { "CAVES", Def::cavesA }, {"SET\nRANDOM", Def::tempA} };
-    Button::active = { "RUN", "STOP", "LIVE", "CARPET", "MAZE", "CAVES", "DAYNIGHT", "DIAMOEBA", "SET\nRANDOM"};
-    Def::buttons.loadFromFile("buttons.png");
-    sf::RenderWindow* w1 = &w;
-    int textsize = 15;
-    sf::Color col_but = Def::brightRed, col_but_text = sf::Color::Black;
-    sf::Vector2f butcolumn[15][7];
-    for (int i = 0; i < 15; i++) {
-        for (int j = 0; j < 7; j++) {
-            butcolumn[i][j] = sf::Vector2f({ field.tablerect.width + 10 + 120 * j, 10 + i * (float)60 });
-        }
-    }
+    Gl::buttons.loadFromFile("buttons.png");
+    Gl::background.loadFromFile("background.png");
+    sf::Texture but_background_txtr;
+    but_background_txtr.loadFromImage(Gl::background);
+    but_background.setTexture(but_background_txtr);
+    but_background.setPosition({ field.rect.width, 0 });
+    but_background.setScale(0.65, 0.65);
 
-    info_crd.init(&w, "", &myfont, 15, sf::Color::Red, butcolumn[10][4]);
-    info_typeA.init(&w, "", &myfont, 15, sf::Color::Red, butcolumn[11][4]);
-    Slider controltps, controlchance;
-    controltps.init(w1, "TPS:", &myfont, butcolumn[0][2], sf::Vector2f{ 300, 100 }, 30, sf::Color::Black, [](int a) {Def::TPS = a;
-        }, 1, 240, Def::TPS);
-    controlchance.init(w1, "CHANCE:", &myfont, butcolumn[2][2], sf::Vector2f{ 300, 100 }, 30, sf::Color::Black, [](int a) {Def::chance = a;}, 0, 100, Def::chance);
-
-    Button run, stop, run_one_step, generate, generatecustom, clean, maze, caves, live, daynight, diamoba, carpet, upload, open, \
-        close, tps5, tps15, tps30, tps60, tps120, brush_col_1, brush_col_0, setrandombut, newrandombut, typecheckingneighbours;
-    brush_col_1.init(w1, "", &myfont, sf::Vector2f{ field.tablerect.width + 570, 10 }, sf::Vector2f(30, 30), textsize, sf::Color::Black, sf::Color::Black, []() {field.brush = 1;}, false);
-    brush_col_0.init(w1, "", &myfont, sf::Vector2f{ field.tablerect.width + 570, 50 }, sf::Vector2f(30, 30), textsize, sf::Color::White, sf::Color::White, []() {field.brush = 0;}, false);
-
-    run.init(w1, "RUN", &myfont, butcolumn[0][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 1;});
-    stop.init(w1, "STOP", &myfont, butcolumn[1][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 0;});
-    run_one_step.init(w1, "ONE STEP", &myfont, butcolumn[2][0], sf::Vector2f{ 100, 50 }, textsize, col_but, col_but_text, []() {Def::RUN = 2;});
-    generate.init(w1, "GENERATE", &myfont, butcolumn[3][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setrandom();});
-    generatecustom.init(w1, "GENERATE\nSQUARE", &myfont, butcolumn[4][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.setcustom();});
-    clean.init(w1, "CLEAN", &myfont, butcolumn[5][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {field.clean();});
-
-    maze.init(w1, "MAZE", &myfont, butcolumn[0][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::mazeA;});
-    caves.init(w1, "CAVES", &myfont, butcolumn[1][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::cavesA;});
-    live.init(w1, "LIVE", &myfont, butcolumn[2][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::liveA;});
-    daynight.init(w1, "DAYNIGHT", &myfont, butcolumn[3][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::daynightA;});
-    diamoba.init(w1, "DIAMOEBA", &myfont, butcolumn[4][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::diamobaA;});
-    carpet.init(w1, "CARPET", &myfont, butcolumn[5][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::carpetA;});
-    newrandombut.init(w1, "NEW\nRANDOM", &myfont, butcolumn[6][2], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {generate_automaton(); Def::mode = Def::tempA;});
-    setrandombut.init(w1, "SET\nRANDOM", &myfont, butcolumn[6][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::mode = Def::tempA;});
-
-    upload.init(w1, "UPLOAD", &myfont, butcolumn[14][1], sf::Vector2f(100, 50), textsize, col_but, col_but_text, UploadFile);
-    open.init(w1, "OPEN", &myfont, butcolumn[14][0], sf::Vector2f(100, 50), textsize, col_but, col_but_text, OpenFile);
-    close.init(w1, "CLOSE", &myfont, butcolumn[14][2], sf::Vector2f(100, 50), textsize, col_but, col_but_text, []() {Def::CLOSE = 1;});
-
-    typecheckingneighbours.init(w1, "NEIGHBOURS:", &myfont, butcolumn[4][2], sf::Vector2f(150, 60), 14, col_but, col_but_text, []() {Def::typecheckingneighbours = Def::typecheckingneighbours == 8 ? 4 : 8;});
+    //ИНИЦИАЛИЗАЦИЯ ОБЪЕКТОВ КЛАССОВ
+    std::srand(std::time(NULL));
+    sf::RenderWindow w(sf::VideoMode(Config::windowSize.x, Config::windowSize.y), "CellularAutomaton_v2.3");
     w.setActive(false);
-    rendering = std::thread([](sf::RenderWindow* w1, std::mutex* m1) {
-        work_with_graphics(w1, m1);
-    }, &w, &m1);
-
+    field = Table(&w, &camera_table, { 0, 0, (float)Config::windowSize.y, (float)Config::windowSize.y });
     sf::Event ev;
-    while (Def::running) {
-        handleevents(&w, &ev);
-        if (Def::CLOSE)
-            break;
-        if (Def::focused) {
+    sf::RenderWindow* iw = &w;
+
+    camera_i = Camera(iw, { field.rect.width, 0, (float)(Config::windowSize.x - field.rect.width), (float)Config::windowSize.y });
+    camera_table = Camera(iw, { field.rect.left, field.rect.top, field.rect.width, field.rect.height });
+    default_camera = Camera(iw, { 0, 0, (float)Config::windowSize.x, (float)Config::windowSize.y });
+
+    int textsize = 15;
+    sf::Color col_but = Gl::brightRed, col_but_text = sf::Color::Black;
+    sf::IntRect default_texture = { 1, 1, 162, 71 };
+    sf::Vector2f butcolumn[15][7];
+    for (int i = 0; i < 15; i++)
+        for (int j = 0; j < 7; j++)
+            butcolumn[i][j] = sf::Vector2f({ field.rect.width + 10 + 120 * j, 10 + i * (float)60 });
+
+    textbox1.init(iw, "Birth  ", { butcolumn[8][1], {400, 50} }, &myfont);
+    textbox2.init(iw, "Survive  ", { butcolumn[9][1], {400, 50} }, &myfont);
+
+    info_typeA = Text(iw, "", &myfont, 20, sf::Color::White, butcolumn[10][2]);
+
+    Text ex_sl_t(iw, "exapmple1", &myfont, 30, sf::Color::Black, {0, 0}, false);
+    Text ex_but_t(iw, "example2", &myfont, 15, sf::Color::Black, { 0, 0 }, false);
+
+    Slider controltps(iw, "TPS:", {butcolumn[0][2], sf::Vector2f{ 300, 100 }}, default_texture, ex_sl_t, [](int a) {Config::TPS = a;}, 1, 100, Config::TPS);
+    Slider controlchance(iw, "CHANCE:", {butcolumn[2][2], sf::Vector2f{ 300, 100 }}, default_texture, ex_sl_t, [](int a) {Config::chance = a;}, 0, 100, Config::chance);
+    Slider controlgeneration(iw, "CNT GENERATION: ", { butcolumn[4][2], sf::Vector2f(300, 100) }, default_texture, &myfont, 23, sf::Color::Black, [](int a) {Gl::CNT_GENER = a; field.brush = a; }, 1, Config::GENER_COLORS.size() - 1, Gl::CNT_GENER);
+
+    Button brush_col_1(iw, "", sf::Rect<float>(sf::Vector2f{ field.rect.width + 570, 10 }, sf::Vector2f(30, 30)), sf::IntRect(195, 0, 30, 30), ex_but_t, []() {field.brush = Gl::CNT_GENER;}, {0, false}, false);
+    Button brush_col_0(iw, "", sf::Rect<float>(sf::Vector2f{ field.rect.width + 570, 50 }, sf::Vector2f(30, 30)), sf::IntRect(165, 0, 30, 30), ex_but_t, []() {field.brush = 0;}, {0, false}, false);
+    Button run(iw, "RUN", { butcolumn[0][0], sf::Vector2f{ 100, 50 } }, default_texture, ex_but_t, []() {Gl::RUN = 1;}, { 2, true });
+    Button stop(iw, "STOP", { butcolumn[1][0], sf::Vector2f{ 100, 50 } }, default_texture, ex_but_t, []() {Gl::RUN = 0;}, { 2, true });
+    Button run_one_step(iw, "ONE STEP", {butcolumn[2][0], sf::Vector2f{ 100, 50 }}, default_texture, ex_but_t, []() {Gl::RUN = 2;}, {2, false});
+    Button generate(iw, "GENERATE", {butcolumn[3][0], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {field.setrandom();});
+    Button generatecustom(iw, "GENERATE\nSQUARE", {butcolumn[4][0], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {field.setcustom();});
+    Button clean(iw, "CLEAN", { butcolumn[5][0], sf::Vector2f(100, 50) }, default_texture, ex_but_t, []() {field.clean(); Gl::RUN = 0;}, { 2, false }, true);
+
+    Button maze(iw, "MAZE", { butcolumn[0][1], sf::Vector2f(100, 50) }, default_texture, ex_but_t, []() {Gl::mode = Config::maze;}, { 1, true });
+    Button caves(iw, "CAVES", {butcolumn[1][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = Config::caves;}, {1, true});
+    Button live(iw, "LIVE", {butcolumn[2][1], sf::Vector2f(100, 50) }, default_texture, ex_but_t, []() {Gl::mode = Config::live;}, {1, true});
+    Button daynight(iw, "DAYNIGHT", {butcolumn[3][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = Config::daynight;}, {1, true});
+    Button amoeba(iw, "AMOEBA", {butcolumn[4][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = Config::diamoba;}, {1, true});
+    Button carpet(iw, "CARPET", {butcolumn[5][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = Config::carpet;}, {1, true});
+    Button custom1(iw, "CUSTOM1", {butcolumn[7][0], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = TypeAutomaton({2, 8}, {0, 2, 3, 4, 7});}, {1, true});
+	Button custom2(iw, "CUSTOM2", {butcolumn[7][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = TypeAutomaton({ 1, 2, 5, 6, 8 }, { 0, 1, 4, 6, 7, 8 });}, {1, true});
+    Button newrandombut(iw, "NEW\nRANDOM", {butcolumn[6][2], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {generate_automaton(); Gl::mode = Gl::tempA;}, {1, false});
+    Button setrandombut(iw, "SET\nRANDOM", {butcolumn[6][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::mode = Gl::tempA;}, {1, true});
+
+    Button upload(iw, "UPLOAD", {butcolumn[14][1], sf::Vector2f(100, 50)}, default_texture, ex_but_t, UploadFile);
+    Button open(iw, "OPEN", {butcolumn[14][0], sf::Vector2f(100, 50)}, default_texture, ex_but_t, OpenFile);
+    Button close(iw, "CLOSE", {butcolumn[14][2], sf::Vector2f(100, 50)}, default_texture, ex_but_t, []() {Gl::CLOSE = 1;});
+
+    Button typecheckingneighbours(iw, "NEIGHBOURS:", {butcolumn[6][3], sf::Vector2f(150, 60)}, default_texture, &myfont, 14, sf::Color::Black, switchNbrtype);
+    
+    Button apply(iw, "Apply", { butcolumn[10][1], sf::Vector2f(100, 50) }, default_texture, ex_but_t, Apply);
+
+    Gl::rendering = std::thread([&](sf::RenderWindow* iw) {
+        work_with_graphics(iw);
+    }, &w);
+
+    // ОСНОВНОЙ ЦИКЛ
+    while (Gl::running) {
+
+        if (systemclock1.getElapsedTime().asMilliseconds() >= 10) {
+            systemclock1.restart();
+            handleevents(&w, &ev);
+            if (Gl::CLOSE)
+                break;     
+        }
+        if (Gl::focused) {
             field.check();
+            camera_table.check();
             for (auto but : Button::List)
                 but->check();
             for (auto but : Slider::List)
                 but->check();
         }
-        if (clocktps.getElapsedTime().asMilliseconds() >= 1000 / Def::TPS) {
+        if (clocktps.getElapsedTime().asMilliseconds() >= 1000 / Config::TPS) {
             clocktps.restart();
-            if (Def::RUN == 2) {
+            if (Gl::RUN == 2) {
                 field.nextgeneration();
-                Def::RUN = 0;
-            } else if (Def::RUN == 1) {
+                Gl::RUN = 0;
+            } else if (Gl::RUN == 1) {
                 field.nextgeneration();
             }
         }
@@ -264,8 +284,6 @@ int main() {
     Close(&w);
     w.setActive(true);
     w.close();
-	std::cout << "Window closed!" << std::endl;
-
     return 0;
 }
 
