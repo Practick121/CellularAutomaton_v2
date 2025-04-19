@@ -1,36 +1,29 @@
 #pragma once
+#include "Text.h"
+#include "functions.h"
+#include "Global.h"
+#include "ButtonProt.h"
+#include "Config.h"
 #include <iostream>
 #include <string>
 #include <SFML/Graphics.hpp>
-#include <map>
-#include "Text.h"
-#include "functions.h"
-#include "defenition.h"
 
-class Button {
+class Button: ButtonProt {
 public: 
+    static std::vector <Button*> Active; // первый элемент - активная кнопка из первого множества, второй элемент - ..
     static std::vector <Button*> List;
-    virtual void init(sf::RenderWindow* w, std::string str1, sf::Font* font, sf::Vector2f coord1, sf::Vector2f size1, int sizetext, sf::Color col1, sf::Color col_text1, void (*func)(), bool texture_on=true) final;
-    void render(), draw(int num=-1);
-    virtual void check();
-    int ispressed(); // 0 - мышь не на кнопке, 1 - мышь на кнопке и отжата, 2 - мышь на кнопке и нажата
-    virtual void callfunc();
-    static std::vector <std::string> active;
-    static std::map <std::string, TypeAutomaton> mapactive;
-    sf::RenderWindow* w1;
+    void render();
+    void check();
+    Button(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, sf::Font* ifont1, int sizetext, sf::Color col_text1, void (*func1)(), std::pair<int, bool> num_set1 = { 0, false }, bool paint = true);
+    Button(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, Text example1, void (*func1)(), std::pair<int, bool> num_set1 = { 0, false }, bool paint = true);
 private:
-    sf::Sprite sprites[4];
+    std::pair<int, bool> num_set; // к какому множеству активных кнопок относится данная кнопка/ отображается ли она активной
+    void init(sf::IntRect textue_rect1, std::string title1);
+    void initSprite(sf::IntRect texture_rect1) override;
+    void callfunc();
+    sf::Sprite sprite[4];
     sf::Texture texture;
-    sf::Rect <float> rect;
-    sf::RectangleShape rectshape[4];
-    sf::Vector2f coord, size;
-    sf::Color colbut, coltext;
-    Text text;
-    sf::Font* font;
-    int sizetext;
-    std::string title;
-    bool texture_on;
-    int pressed = 0;
     void (*func)();
 };
-;
+
+
