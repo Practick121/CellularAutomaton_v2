@@ -42,7 +42,7 @@ void Button::initSprite(sf::IntRect texture_rect1) {
 
 void Button::render() {
     if (text.orig_str == "NEIGHBOURS:")
-        text.setString(text.orig_str + Gl::mode.getTypenbrs());
+        text.setString(text.orig_str + Gl::mode.getTypeCheck());
     if (!paint)
         iw->draw(sprite[0]);
 	else if (Active[num_set.first] == this && num_set.second)

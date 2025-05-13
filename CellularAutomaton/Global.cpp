@@ -3,7 +3,7 @@
 
 int Gl::RUN = 0;
 bool Gl::focused = true;
-TypeAutomaton Gl::tempA({}, {}, 2, "8");
+TypeAutomaton Gl::tempA({}, {}, 2, "M", 1);
 std::string Gl::input = "INPUT: ";
 int Gl::running = 1, Gl::CLOSE = 0;
 std::vector <std::vector<int>> Gl::MyEvents;

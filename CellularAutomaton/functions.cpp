@@ -6,15 +6,22 @@ int getrandom(int a, int b) { return rand() % (b - a + 1) + a; }
 
 void generate_automaton() {
     std::vector<int> birth, survive;
-    int max_cnt = std::stoi(Gl::mode.getTypenbrs());
+    int max_cnt = 0;
+    int r = Gl::mode.getRadius();
+    if (Gl::mode.getTypeCheck() == "M") {
+        max_cnt = (2 * r + 1) * (2 * r + 1);
+    }
+    else if (Gl::mode.getTypeCheck() == "N") {
+        max_cnt = 2 * r * r - 2 * r + 1;
+    }
     for (int i = 1; i <= max_cnt; i++)
         if (getrandom(0, 1))
             survive.push_back(i);
     for (int i = 1; i <= max_cnt; i++)
         if (getrandom(0, 1))
             birth.push_back(i);
-
-	Gl::tempA = TypeAutomaton(birth, survive, Gl::mode.getCntGen(), Gl::mode.getTypenbrs());
+    Gl::mode.setBirth(birth);
+    Gl::mode.setSurvive(survive);
 }
 
 void Close(sf::RenderWindow* iw) {
@@ -25,20 +32,37 @@ void Close(sf::RenderWindow* iw) {
     }
 }
 
-std::vector<int> string_to_mas(std::string s, char sep)
+std::vector<int> string_to_mas(std::string s, char sep, bool deleteRepeat)
 {
     s += sep;
     std::vector<int> Mas;
+    std::vector<int> Ranges;
     int sz = s.size();
     std::string t = "";
     for (int i = 0; i < sz; i++) {
         if (s[i] == sep) {
-            if (t != "")
+            if (t != "") {
                 Mas.push_back(std::stoi(t));
+            }
             t = "";
         }
+        else if (s[i] == '-')
+            Ranges.push_back(Mas.size() - 1);
         else
             t += s[i];
+    }
+    for (auto el : Ranges) {
+        if (el == Mas.size() - 1)
+            break;
+        int s = Mas[el], e = Mas[el + 1];
+        for (int i = s; i <= e; i++)
+            Mas.push_back(i);
+    }
+    
+    if (deleteRepeat) {
+        std::sort(Mas.begin(), Mas.end());
+        auto last = std::unique(Mas.begin(), Mas.end());
+        Mas.erase(last, Mas.end());
     }
     return Mas;
 }

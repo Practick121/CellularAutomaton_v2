@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp" />
     <ClCompile Include="Button.cpp" />
     <ClCompile Include="ButtonProt.cpp" />
     <ClCompile Include="Camera.cpp" />
@@ -35,7 +34,6 @@
     <ClCompile Include="TypeAutomaton.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h" />
     <ClInclude Include="ButtonProt.h" />
     <ClInclude Include="Button.h" />
     <ClInclude Include="Camera.h" />
@@ -48,14 +46,6 @@
     <ClInclude Include="Table.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="TypeAutomaton.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Font Include="arial.ttf" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="background.png" />
-    <Image Include="background2.png" />
-    <Image Include="buttons.png" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

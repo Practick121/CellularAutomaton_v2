@@ -51,9 +51,6 @@
     <ClCompile Include="Camera.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="Application.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="MyEvent.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
@@ -92,27 +89,8 @@
     <ClInclude Include="Camera.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Application.h">
-      <Filter>Файлы заголовков</Filter>
-    </ClInclude>
     <ClInclude Include="MyEvent.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Font Include="arial.ttf">
-      <Filter>Файлы ресурсов</Filter>
-    </Font>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="buttons.png">
-      <Filter>Файлы ресурсов</Filter>
-    </Image>
-    <Image Include="background.png">
-      <Filter>Файлы ресурсов</Filter>
-    </Image>
-    <Image Include="background2.png">
-      <Filter>Файлы ресурсов</Filter>
-    </Image>
   </ItemGroup>
 </Project>

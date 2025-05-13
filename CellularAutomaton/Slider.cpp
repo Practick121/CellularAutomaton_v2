@@ -1,29 +1,27 @@
 #include "Slider.h"
 
 std::vector<Slider*> Slider::List;
-Slider::Slider(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, sf::Font* ifont1, int size_text1, sf::Color col_text1, void(*func1)(int a), int minvalue1, int maxvalue1, int defaultvalue1) :
+Slider::Slider(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, sf::Font* ifont1, int size_text1, sf::Color col_text1, void(*func1)(int a), int minvalue1, int maxvalue1, int (*getter1)()) :
 	func{ func1 }, 
 	min_value{minvalue1}, 
 	max_value{maxvalue1},
-	value{defaultvalue1},
+	getter{getter1},
 	ButtonProt(iw1, title1, rect1, ifont1, size_text1, col_text1, false)
 {
 	List.push_back(this);
 	text.setonbutton(rect, "LEFTTOP");
 	initSprite(texture_rect1);
-	//text.printInfo();
 }
-Slider::Slider(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, Text example1, void(*func1)(int a), int minvalue1, int maxvalue1, int defaultvalue1):
+Slider::Slider(sf::RenderWindow* iw1, std::string title1, sf::Rect<float> rect1, sf::IntRect texture_rect1, Text example1, void(*func1)(int a), int minvalue1, int maxvalue1, int (*getter1)()):
 	func{ func1 },
 	min_value{ minvalue1 },
 	max_value{ maxvalue1 },
-	value{ defaultvalue1 },
+	getter(getter1),
 	ButtonProt(iw1, title1, rect1, example1, false)
 {
 	List.push_back(this);
 	text.setonbutton(rect, "LEFTTOP");
 	initSprite(texture_rect1);
-	//text.printInfo();
 }
 void Slider::initSprite(sf::IntRect texture_rect1) {
 	texture.loadFromImage(Gl::buttons, texture_rect1);
@@ -55,6 +53,8 @@ void Slider::callfunc() {
 void Slider::check() {
 	
 	int new_status = getStatus();
+	if (getter != nullptr)
+		value = getter();
 	if (new_status == 2// && status == 1
 		) {
 		sf::Vector2f mouse_pos = get_mouse_pos(iw);
@@ -63,8 +63,6 @@ void Slider::check() {
 		callfunc();
 	}
 	status = new_status;
-	if (text.orig_str == "CNT GENERATION: ")
-		value = Gl::mode.getCntGen();
 	move((float)(value - min_value) / (max_value - min_value) * (sliderlinerect.width - sliderrect.width));
 	std::string title = text.str, new_title;
 

@@ -77,29 +77,31 @@ void Table::updateVertexArray() {
     update.clear();
 }
 int Table::getcntnbrs(int i, int j) {
+    int cnt = 0;
     int sz = Config::SIZET;
-    int ans = 0;
-    int ip = (i - 1 + sz) % sz, jp = (j - 1 + sz) % sz;
-    int in = (i + 1 + sz) % sz, jn = (j + 1 + sz) % sz;
-    int inn = (in + 1 + sz) % sz, jnn = (jn + 1 + sz) % sz;
-    int ipp = (ip - 1 + sz) % sz, jpp = (jp - 1 + sz) % sz;
-    int nb4 = isalive(ip, j) + isalive(i, jp) + isalive(i, jn) + isalive(in, j);
-    if (Gl::mode.getTypenbrs() == "4")
-        return nb4;
-    int nb8 = nb4 + isalive(ip, jp) + isalive(ip, jn) + isalive(in, jp) + isalive(in, jn);
-    if (Gl::mode.getTypenbrs() == "8")
-        return nb8;
-    int nb12 = nb8 + isalive(ipp, j) + isalive(inn, j) + isalive(i, jpp) + isalive(i, jnn);
-    if (Gl::mode.getTypenbrs() == "12")
-        return nb12;
-    int nb24 = nb12 +
-        isalive(ipp, jpp) + isalive(ipp, jp) + isalive(ip, jpp) +
-        isalive(inn, jpp) + isalive(inn, jp) + isalive(in, jpp) +
-        isalive(ipp, jnn) + isalive(ipp, jn) + isalive(ip, jnn) +
-        isalive(inn, jnn) + isalive(inn, jn) + isalive(in, jnn);
-    if (Gl::mode.getTypenbrs() == "24")
-        return nb24;
-    return 0;
+    int R = Gl::mode.getRadius();
+    if (Gl::mode.getTypeCheck() == "M") {
+        for (int di = -R; di <= R; di++) {
+            for (int dj = -R; dj <= R; dj++) {
+                //int a = 0;
+                //if (abs(di) <= a && abs(dj) <= a)
+                //    continue;
+                if (di == 0 && dj == 0)
+                    continue;
+                cnt += isalive((i + di + sz) % sz, (j + dj + sz) % sz);
+            }
+        }
+    }
+    else if (Gl::mode.getTypeCheck() == "N") {
+        for (int di = -R; di <= R; di++) {
+            for (int dj = abs(di) - R; dj <= -abs(di) + R; dj++) {
+                if (di == 0 && dj == 0)
+                    continue;
+                cnt += isalive((i + di + sz) % sz, (j + dj + sz) % sz);
+            }
+        }
+    }
+    return cnt;
 }
 bool Table::isalive(int i, int j)
 {
@@ -174,4 +176,5 @@ void Table::setmatrix(std::vector<std::vector<int>>* M1) {
 void Table::newAutomaton(TypeAutomaton aut)
 {
     Gl::mode = aut;
+    initGenerColors(cellColor);
 }
